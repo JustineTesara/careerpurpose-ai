@@ -207,40 +207,50 @@ STRICT FORMATTING RULES:
               Personal Info
             </h2>
             <div className="flex flex-col gap-3">
-              {[
-                {
-                  label: "Full Name *",
-                  field: "name",
-                  placeholder: "e.g. Maria Santos",
-                },
-                {
-                  label: "Job Title Applying For *",
-                  field: "target",
-                  placeholder: "e.g. Customer Service Representative",
-                },
-                {
-                  label: "Email & Phone",
-                  field: "contact",
-                  placeholder: "email@gmail.com | +63 912 345 6789",
-                },
-                {
-                  label: "Location",
-                  field: "location",
-                  placeholder: "e.g. Quezon City, Metro Manila",
-                },
-              ].map(({ label, field, placeholder }) => (
-                <div key={field}>
-                  <label className="text-gray-500 text-xs block mb-1">
-                    {label}
-                  </label>
-                  <input
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-violet-500"
-                    placeholder={placeholder}
-                    value={form[field]}
-                    onChange={(e) => handleChange(field, e.target.value)}
-                  />
-                </div>
-              ))}
+              <div>
+                <label className="text-gray-500 text-xs block mb-1">
+                  Full Name *
+                </label>
+                <input
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-violet-500"
+                  placeholder="e.g. Maria Santos"
+                  value={form.name}
+                  onChange={(e) => handleChange("name", e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-gray-500 text-xs block mb-1">
+                  Job Title Applying For *
+                </label>
+                <input
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-violet-500"
+                  placeholder="e.g. Customer Service Representative"
+                  value={form.target}
+                  onChange={(e) => handleChange("target", e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-gray-500 text-xs block mb-1">
+                  Email & Phone
+                </label>
+                <input
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-violet-500"
+                  placeholder="email@gmail.com | +63 912 345 6789"
+                  value={form.contact}
+                  onChange={(e) => handleChange("contact", e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-gray-500 text-xs block mb-1">
+                  Location
+                </label>
+                <input
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-violet-500"
+                  placeholder="e.g. Quezon City, Metro Manila"
+                  value={form.location}
+                  onChange={(e) => handleChange("location", e.target.value)}
+                />
+              </div>
             </div>
           </div>
 
