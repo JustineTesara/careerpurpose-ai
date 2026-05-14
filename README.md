@@ -1,57 +1,62 @@
 # CareerPurpose AI 🚀
 
-An AI-powered career platform for students, fresh graduates, freelancers, and job seekers in the Philippines. Built with React, Firebase, Tailwind CSS, and Groq AI (free).
+### _Your AI career coach — available 24/7, completely free._
 
-![CareerPurpose AI](https://img.shields.io/badge/React-18-blue?style=flat-square&logo=react)
-![Firebase](https://img.shields.io/badge/Firebase-Free_Tier-orange?style=flat-square&logo=firebase)
-![Groq AI](https://img.shields.io/badge/Groq_AI-Free-green?style=flat-square)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-38bdf8?style=flat-square&logo=tailwindcss)
+> Build resumes. Ace interviews. Close skill gaps. Land your dream job.  
+> Powered by Groq AI (Llama 3.3) · Built for Filipino job seekers 🇵🇭
+
+**[🌐 Try it Live →](https://careerpurpose-ai.vercel.app)**
+
+---
+
+## What is CareerPurpose AI?
+
+Most job seekers don't fail because they're unqualified.  
+They fail because they don't know how to **present themselves**.
+
+CareerPurpose AI fixes that — by giving everyone access to the kind of career coaching that used to cost thousands of pesos.
 
 ---
 
 ## ✨ Features
 
-| Feature                   | Description                                            |
-| ------------------------- | ------------------------------------------------------ |
-| 📄 AI Resume Builder      | Generate ATS-friendly resumes and export to PDF        |
-| 🔍 AI Resume Analyzer     | Upload PDF resume and get ATS score + feedback         |
-| 🗺️ AI Career Roadmap      | Personalized step-by-step learning roadmap             |
-| 🎤 AI Interview Simulator | Mock interviews with AI feedback and scoring           |
-| 📊 Skill Gap Analysis     | Compare your skills vs target job requirements         |
-| ✉️ AI Cover Letter        | Generate personalized cover letters instantly          |
-| 💼 Job Tracker            | Track applications, interviews, offers, and rejections |
-| 📚 Learning Hub           | Free personalized learning plans for any skill         |
-| 🎯 Productivity           | Daily goal tracker with progress analytics             |
+| Tool                       | What it does                                                |
+| -------------------------- | ----------------------------------------------------------- |
+| 📄 **Resume Builder**      | AI writes your resume → download as PDF or Word             |
+| 🔍 **Resume Analyzer**     | Upload your resume → get ATS score + honest feedback        |
+| 🗺️ **Career Roadmap**      | Tell us your goal → get a step-by-step learning plan        |
+| 🎤 **Interview Simulator** | Practice interviews → get AI feedback on your answers       |
+| 📊 **Skill Gap Analysis**  | See exactly what skills you're missing for your target role |
+| ✉️ **Cover Letter**        | One click → personalized professional cover letter          |
+| 💼 **Job Tracker**         | Track applications, interviews, offers, and rejections      |
+| 📚 **Learning Hub**        | Free learning plans for any skill — Excel, coding, anything |
+| 🎯 **Productivity**        | Set daily goals and track your career progress              |
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Built With
 
-- **Frontend:** React 18 + Tailwind CSS 3
-- **Authentication:** Firebase Auth (Google Sign-In)
-- **Database:** Firebase Firestore
-- **AI:** Groq API (free tier — Llama 3.3 70B)
-- **PDF Export:** jsPDF
-- **PDF Reading:** pdfjs-dist
-- **Deployment:** Vercel (free)
+```
+React 18          → Frontend UI
+Tailwind CSS 3    → Styling
+Firebase Auth     → Google login
+Firebase Firestore → Database
+Groq API (Free)   → AI (Llama 3.3 70B)
+jsPDF             → PDF export
+docx + file-saver → Word export
+pdfjs-dist        → PDF reading
+mammoth           → Word reading
+Vercel            → Deployment
+```
 
 ---
 
 ## 🚀 Getting Started
 
-### Prerequisites
-
-- Node.js 16+
-- npm or yarn
-- Firebase account (free)
-- Groq API key (free at [console.groq.com](https://console.groq.com))
-
-### Installation
-
-**1. Clone the repository**
+**1. Clone the repo**
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/careerpurpose-ai.git
+git clone https://github.com/JustineTesara/careerpurpose-ai.git
 cd careerpurpose-ai
 ```
 
@@ -63,130 +68,118 @@ npm install
 
 **3. Set up Firebase**
 
-Create a `.env` file in the root folder:
+Create a `.env` file in the root:
 
 ```env
-REACT_APP_FIREBASE_API_KEY=your_api_key
-REACT_APP_FIREBASE_AUTH_DOMAIN=your_auth_domain
+REACT_APP_FIREBASE_API_KEY=your_key
+REACT_APP_FIREBASE_AUTH_DOMAIN=your_domain
 REACT_APP_FIREBASE_PROJECT_ID=your_project_id
-REACT_APP_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+REACT_APP_FIREBASE_STORAGE_BUCKET=your_bucket
 REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 REACT_APP_FIREBASE_APP_ID=your_app_id
+DISABLE_ESLINT_PLUGIN=true
+CI=false
 ```
 
-**4. Run the app**
+**4. Run locally**
 
 ```bash
 npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
 **5. Get your free Groq API key**
 
-Go to [console.groq.com](https://console.groq.com), sign up for free, and paste your key in the sidebar of the app.
+Go to [console.groq.com](https://console.groq.com) → sign up free → create API key → paste it in the app sidebar.
 
 ---
 
 ## 📁 Project Structure
 
 ```
-careerpurpose-ai/
-├── public/
-├── src/
-│   ├── components/
-│   │   └── Sidebar.js          # Navigation sidebar
-│   ├── context/
-│   │   └── AuthContext.js      # Firebase auth context
-│   ├── lib/
-│   │   └── gemini.js           # Groq AI API calls
-│   ├── pages/
-│   │   ├── Login.js            # Google login page
-│   │   ├── Dashboard.js        # Main dashboard
-│   │   ├── ResumeBuilder.js    # AI resume builder + PDF
-│   │   ├── ResumeAnalyzer.js   # Resume analyzer + PDF upload
-│   │   ├── CareerRoadmap.js    # AI career roadmap
-│   │   ├── InterviewSim.js     # Mock interview simulator
-│   │   ├── SkillGap.js         # Skill gap analysis
-│   │   ├── CoverLetter.js      # Cover letter generator
-│   │   ├── JobTracker.js       # Job application tracker
-│   │   ├── LearningHub.js      # Learning plan generator
-│   │   └── Productivity.js     # Daily goal tracker
-│   ├── App.js                  # Main app + routing
-│   ├── firebase.js             # Firebase config
-│   └── index.css               # Tailwind CSS imports
-├── tailwind.config.js
-├── package.json
-└── README.md
+src/
+├── components/
+│   └── Sidebar.js          # Nav + mobile hamburger menu
+├── context/
+│   └── AuthContext.js      # Firebase auth state
+├── lib/
+│   └── gemini.js           # Groq AI API calls + caching
+├── pages/
+│   ├── Login.js            # Google login
+│   ├── Dashboard.js        # Home dashboard
+│   ├── ResumeBuilder.js    # AI resume → PDF/Word export
+│   ├── ResumeAnalyzer.js   # Upload PDF/Word → AI analysis
+│   ├── CareerRoadmap.js    # AI learning roadmap
+│   ├── InterviewSim.js     # Mock interview + feedback
+│   ├── SkillGap.js         # Skill gap analysis
+│   ├── CoverLetter.js      # AI cover letter generator
+│   ├── JobTracker.js       # Job application tracker
+│   ├── LearningHub.js      # Free learning plan generator
+│   └── Productivity.js     # Daily goal tracker
+├── App.js
+├── firebase.js
+└── index.css
 ```
 
 ---
 
-## 🔑 Environment Variables
+## 💸 100% Free Stack
 
-| Variable                                 | Description                  |
-| ---------------------------------------- | ---------------------------- |
-| `REACT_APP_FIREBASE_API_KEY`             | Firebase API key             |
-| `REACT_APP_FIREBASE_AUTH_DOMAIN`         | Firebase auth domain         |
-| `REACT_APP_FIREBASE_PROJECT_ID`          | Firebase project ID          |
-| `REACT_APP_FIREBASE_STORAGE_BUCKET`      | Firebase storage bucket      |
-| `REACT_APP_FIREBASE_MESSAGING_SENDER_ID` | Firebase messaging sender ID |
-| `REACT_APP_FIREBASE_APP_ID`              | Firebase app ID              |
+| Service            | Free Limit                  |
+| ------------------ | --------------------------- |
+| Groq API           | 14,400 requests/day         |
+| Firebase Auth      | 10,000 users/month          |
+| Firebase Firestore | 1GB storage · 50k reads/day |
+| Vercel Hosting     | Unlimited deployments       |
 
-> ⚠️ Never commit your `.env` file to GitHub. It's already in `.gitignore` by default.
+No credit card. No hidden fees. No catch.
 
 ---
 
-## 🌐 Deployment
+## 🌐 Deploy Your Own
 
-This app is deployed on **Vercel** for free.
+**One-click deploy on Vercel:**
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/JustineTesara/careerpurpose-ai)
+
+Or manually:
 
 ```bash
-# Install Vercel CLI
 npm install -g vercel
-
-# Deploy
 vercel
 ```
-
-Or connect your GitHub repo directly at [vercel.com](https://vercel.com) for automatic deployments.
-
----
-
-## 💡 Free Services Used
-
-| Service            | Free Tier                  |
-| ------------------ | -------------------------- |
-| Firebase Auth      | 10,000 users/month         |
-| Firebase Firestore | 1GB storage, 50k reads/day |
-| Groq API           | 14,400 requests/day        |
-| Vercel             | Unlimited deployments      |
 
 ---
 
 ## 🤝 Contributing
 
-Pull requests are welcome! For major changes, please open an issue first.
+Found a bug? Have an idea? PRs are welcome!
+
+1. Fork the repo
+2. Create a branch: `git checkout -b feature/your-idea`
+3. Commit: `git commit -m "feat: your idea"`
+4. Push: `git push origin feature/your-idea`
+5. Open a Pull Request
 
 ---
 
 ## 📄 License
 
-MIT License — feel free to use this project for your own portfolio or startup.
+MIT — free to use, modify, and build on.
 
 ---
 
-## 👨‍💻 Author
+## 👩‍💻 Author
 
-**Justine Tesara**
-
-- GitHub: [@JustineTesara](https://github.com/JustineTesara)
-- Location: Polangui, Albay, Philippines
+**Justine Tesara**  
+Fresh IT Graduate · Polangui, Albay 🇵🇭  
+GitHub: [@JustineTesara](https://github.com/JustineTesara)
 
 ---
 
-## ⭐ Support
+<div align="center">
 
-If this project helped you, please give it a ⭐ on GitHub!
+**If this helped you, give it a ⭐ on GitHub!**
 
-> Built with ❤️ in the Philippines 🇵🇭
+_Built with ❤️ and too much coffee in the Philippines_ ☕
+
+</div>
