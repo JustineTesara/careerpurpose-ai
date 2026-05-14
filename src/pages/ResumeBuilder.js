@@ -272,16 +272,16 @@ STRICT FORMATTING RULES:
               </div>
               <div>
                 <label className="text-gray-500 text-xs block mb-1">
-                  Technical Skills
+                  Technical Skills{" "}
                   <span className="text-gray-600 ml-1 font-normal">
-                    (one per line or comma separated)
+                    (one per line)
                   </span>
                 </label>
                 <textarea
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-violet-500 resize-none"
                   rows={4}
                   placeholder={
-                    "Communication Skills\nProblem Solving\nMS Office\nData Entry\nCustomer Handling\nTeamwork"
+                    "Communication Skills\nProblem Solving\nMS Office\nCustomer Handling"
                   }
                   value={form.skills}
                   onChange={(e) => handleChange("skills", e.target.value)}
@@ -294,7 +294,7 @@ STRICT FORMATTING RULES:
                 <textarea
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-violet-500 resize-none"
                   rows={3}
-                  placeholder="e.g. Customer Service Rep at BPO Company — handled 50+ calls/day, resolved complaints, maintained 95% satisfaction rate"
+                  placeholder="e.g. IT Intern at Sutherland — built web apps using React and Firebase"
                   value={form.experience}
                   onChange={(e) => handleChange("experience", e.target.value)}
                 />

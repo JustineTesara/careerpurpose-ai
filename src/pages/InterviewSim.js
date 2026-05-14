@@ -64,7 +64,7 @@ Make questions realistic and appropriate for the Philippines job market.`;
     // Parse numbered questions from result
     const parsed = result
       .split("\n")
-      .filter((l) => l.trim().match(/^\d+[.)]/))
+      .filter((l) => /^\d+[.)]\s/.test(l.trim()))
       .map((l) => l.replace(/^\d+[.)]\s*/, "").trim())
       .filter(Boolean);
 
