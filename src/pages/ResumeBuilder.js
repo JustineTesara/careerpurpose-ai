@@ -2,6 +2,16 @@
 import { useState } from "react";
 import { callGemini } from "../lib/gemini";
 import jsPDF from "jspdf";
+import {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  HeadingLevel,
+  AlignmentType,
+  BorderStyle,
+} from "docx";
+import { saveAs } from "file-saver";
 
 function ResumeBuilder() {
   const [form, setForm] = useState({
@@ -15,10 +25,9 @@ function ResumeBuilder() {
     projects: "",
     certifications: "",
   });
-
   const [output, setOutput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [generated, setGenerated] = useState(false);
 
   function handleChange(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -31,6 +40,7 @@ function ResumeBuilder() {
     }
     setLoading(true);
     setOutput("");
+    setGenerated(false);
 
     const prompt = `Create a professional ATS-friendly resume in plain text for:
 Name: ${form.name}
@@ -46,8 +56,8 @@ Certifications: ${form.certifications}
 STRICT FORMATTING RULES:
 - First line: full name only
 - Second line: contact | location
-- Section headers in ALL CAPS (e.g. PROFESSIONAL SUMMARY, EDUCATION, SKILLS, EXPERIENCE, PROJECTS, CERTIFICATIONS)
-- Skills: list EACH skill on its own line starting with a dash: - HTML
+- Section headers in ALL CAPS (PROFESSIONAL SUMMARY, EDUCATION, SKILLS, EXPERIENCE, PROJECTS, CERTIFICATIONS)
+- Skills: list EACH skill on its own line starting with a dash: - SkillName
 - Experience bullets: start with "- "
 - Project bullets: start with "- ProjectName: description (Tech: ...)"
 - NO markdown symbols like ** or ## or __
@@ -56,17 +66,13 @@ STRICT FORMATTING RULES:
 
     const result = await callGemini(prompt);
     setOutput(result);
+    setGenerated(true);
     const count = parseInt(localStorage.getItem("cp_resumes") || "0") + 1;
     localStorage.setItem("cp_resumes", count);
     setLoading(false);
   }
 
-  function handleCopy() {
-    navigator.clipboard.writeText(output);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
+  // ── Download as PDF ───────────────────────────
   function handleDownloadPDF() {
     if (!output) {
       alert("Please generate a resume first.");
@@ -95,35 +101,30 @@ STRICT FORMATTING RULES:
       .map((l) => l.trim())
       .filter(Boolean);
 
-    // ── Name ─────────────────────────────────────────
-    const nameLine = allLines[0] || form.name;
+    // Name
     doc.setFont("helvetica", "bold");
     doc.setFontSize(22);
     doc.setTextColor(20, 20, 20);
-    doc.text(nameLine.replace(/\*/g, ""), pageW / 2, y, { align: "center" });
+    doc.text((allLines[0] || form.name).replace(/\*/g, ""), pageW / 2, y, {
+      align: "center",
+    });
     y += 8;
 
-    // ── Contact line ─────────────────────────────────
-    const contactLine = allLines[1] || "";
+    // Contact
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(90, 90, 90);
-    doc.text(contactLine.replace(/\*/g, ""), pageW / 2, y, { align: "center" });
+    doc.text((allLines[1] || "").replace(/\*/g, ""), pageW / 2, y, {
+      align: "center",
+    });
     y += 6;
-
     drawLine([180, 180, 180]);
 
-    // ── Sections ─────────────────────────────────────
-    let inSection = false;
     let sectionName = "";
-
     for (let i = 2; i < allLines.length; i++) {
       if (y > 272) break;
-
       const raw = allLines[i];
       const clean = raw.replace(/\*/g, "").trim();
-
-      // Detect section header (ALL CAPS, no bullet)
       const isHeader =
         clean === clean.toUpperCase() &&
         clean.length > 3 &&
@@ -132,11 +133,8 @@ STRICT FORMATTING RULES:
         isNaN(clean[0]);
 
       if (isHeader) {
-        if (inSection) y += 1;
-        inSection = true;
+        y += 1;
         sectionName = clean;
-
-        // Section title
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
         doc.setTextColor(90, 60, 200);
@@ -146,7 +144,6 @@ STRICT FORMATTING RULES:
         continue;
       }
 
-      // Skills section — each skill as a bullet pill
       if (sectionName === "SKILLS") {
         const skillText = clean.replace(/^[-•]\s*/, "");
         doc.setFont("helvetica", "normal");
@@ -157,7 +154,6 @@ STRICT FORMATTING RULES:
         continue;
       }
 
-      // Bullet lines
       if (clean.startsWith("-") || clean.startsWith("•")) {
         const bulletText = clean.replace(/^[-•]\s*/, "");
         const wrapped = doc.splitTextToSize(bulletText, contentW - 8);
@@ -172,7 +168,6 @@ STRICT FORMATTING RULES:
         continue;
       }
 
-      // Regular text line
       const wrapped = doc.splitTextToSize(clean, contentW);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
@@ -184,12 +179,135 @@ STRICT FORMATTING RULES:
       });
     }
 
-    const fileName = `${form.name || "Resume"}_Resume.pdf`.replace(/\s+/g, "_");
-    doc.save(fileName);
+    doc.save(`${form.name || "Resume"}_Resume.pdf`.replace(/\s+/g, "_"));
+  }
+
+  // ── Download as Word (.docx) ──────────────────
+  async function handleDownloadWord() {
+    if (!output) {
+      alert("Please generate a resume first.");
+      return;
+    }
+
+    const lines = output
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    const children = [];
+
+    // Name
+    children.push(
+      new Paragraph({
+        text: (lines[0] || form.name).replace(/\*/g, ""),
+        heading: HeadingLevel.TITLE,
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 100 },
+      }),
+    );
+
+    // Contact
+    if (lines[1]) {
+      children.push(
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 200 },
+          children: [
+            new TextRun({
+              text: lines[1].replace(/\*/g, ""),
+              size: 18,
+              color: "555555",
+            }),
+          ],
+        }),
+      );
+    }
+
+    let currentSection = "";
+    for (let i = 2; i < lines.length; i++) {
+      const raw = lines[i];
+      const clean = raw.replace(/\*/g, "").trim();
+      const isHeader =
+        clean === clean.toUpperCase() &&
+        clean.length > 3 &&
+        !clean.startsWith("-") &&
+        !clean.startsWith("•") &&
+        isNaN(clean[0]);
+
+      if (isHeader) {
+        currentSection = clean;
+        // Section heading
+        children.push(
+          new Paragraph({
+            spacing: { before: 240, after: 60 },
+            border: {
+              bottom: { style: BorderStyle.SINGLE, size: 6, color: "5A3CC8" },
+            },
+            children: [
+              new TextRun({
+                text: clean,
+                bold: true,
+                size: 22,
+                color: "5A3CC8",
+              }),
+            ],
+          }),
+        );
+        continue;
+      }
+
+      if (clean.startsWith("-") || clean.startsWith("•")) {
+        const bulletText = clean.replace(/^[-•]\s*/, "");
+        children.push(
+          new Paragraph({
+            bullet: { level: 0 },
+            spacing: { after: 60 },
+            children: [new TextRun({ text: bulletText, size: 18 })],
+          }),
+        );
+        continue;
+      }
+
+      // Skills section
+      if (currentSection === "SKILLS") {
+        children.push(
+          new Paragraph({
+            bullet: { level: 0 },
+            spacing: { after: 40 },
+            children: [new TextRun({ text: clean, size: 18 })],
+          }),
+        );
+        continue;
+      }
+
+      // Regular line
+      children.push(
+        new Paragraph({
+          spacing: { after: 60 },
+          children: [new TextRun({ text: clean, size: 18 })],
+        }),
+      );
+    }
+
+    const doc = new Document({
+      sections: [
+        {
+          properties: {
+            page: {
+              margin: { top: 720, bottom: 720, left: 900, right: 900 },
+            },
+          },
+          children,
+        },
+      ],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, `${form.name || "Resume"}_Resume.docx`.replace(/\s+/g, "_"));
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-6 max-w-5xl mx-auto">
+      {/* Header */}
       <div className="mb-6">
         <h1 className="text-white text-2xl font-bold mb-1">
           AI Resume Builder
@@ -265,15 +383,15 @@ STRICT FORMATTING RULES:
                 </label>
                 <input
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-violet-500"
-                  placeholder="e.g. BS Business Administration, 2024, University of the Philippines"
+                  placeholder="e.g. BS Business Administration, 2024"
                   value={form.education}
                   onChange={(e) => handleChange("education", e.target.value)}
                 />
               </div>
               <div>
                 <label className="text-gray-500 text-xs block mb-1">
-                  Technical Skills{" "}
-                  <span className="text-gray-600 ml-1 font-normal">
+                  Skills{" "}
+                  <span className="text-gray-600 font-normal">
                     (one per line)
                   </span>
                 </label>
@@ -309,15 +427,14 @@ STRICT FORMATTING RULES:
             <div className="flex flex-col gap-3">
               <div>
                 <label className="text-gray-500 text-xs block mb-1">
-                  Projects
-                  <span className="text-gray-600 ml-1 font-normal">
-                    (one per line with * )
+                  Projects{" "}
+                  <span className="text-gray-600 font-normal">
+                    (one per line with *)
                   </span>
                 </label>
-                {/* Helper tip */}
                 <div className="bg-gray-800/60 border border-gray-700 rounded-lg px-3 py-2 mb-2 text-xs text-gray-500">
                   <span className="text-violet-400 font-semibold">Format:</span>{" "}
-                  * ProjectName - description (Tools used: ...)
+                  * ProjectName - description (Tools: ...)
                 </div>
                 <textarea
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-violet-500 resize-none"
@@ -335,7 +452,7 @@ STRICT FORMATTING RULES:
                 </label>
                 <input
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-violet-500"
-                  placeholder="e.g. TESDA NC II, Customer Service Excellence Certificate, Dean's Lister"
+                  placeholder="e.g. TESDA NC II, Dean's Lister, Customer Service Certificate"
                   value={form.certifications}
                   onChange={(e) =>
                     handleChange("certifications", e.target.value)
@@ -354,46 +471,116 @@ STRICT FORMATTING RULES:
           </button>
         </div>
 
-        {/* RIGHT — Output */}
+        {/* RIGHT — Download Options */}
         <div className="flex flex-col gap-4">
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 flex flex-col flex-1">
-            <div className="flex items-center justify-between mb-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 flex-1">
+            <div className="flex items-center gap-2 mb-6">
               <span className="bg-violet-600/20 text-violet-400 border border-violet-600/20 rounded-lg px-3 py-1 text-xs font-bold">
-                ✦ AI OUTPUT
+                ✦ DOWNLOAD RESUME
               </span>
-              {output && (
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleCopy}
-                    className="text-gray-400 hover:text-white text-xs border border-gray-700 rounded-lg px-3 py-1.5 transition"
-                  >
-                    {copied ? "✓ Copied!" : "Copy"}
-                  </button>
-                  <button
-                    onClick={handleDownloadPDF}
-                    className="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg px-3 py-1.5 transition"
-                  >
-                    ⬇ Download PDF
-                  </button>
-                </div>
-              )}
             </div>
-            <div className="flex-1 bg-gray-800 rounded-lg p-4 min-h-96">
-              {loading ? (
-                <div className="flex items-center gap-2 text-gray-400 text-sm">
-                  <div className="w-4 h-4 border-2 border-gray-600 border-t-violet-500 rounded-full animate-spin"></div>
-                  Generating your resume...
-                </div>
-              ) : output ? (
-                <pre className="text-gray-300 text-xs leading-relaxed whitespace-pre-wrap font-mono">
-                  {output}
-                </pre>
-              ) : (
-                <p className="text-gray-600 text-sm">
-                  Your AI-generated resume will appear here.
+
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-4">
+                <div className="w-10 h-10 border-2 border-gray-600 border-t-violet-500 rounded-full animate-spin"></div>
+                <p className="text-gray-400 text-sm">
+                  AI is writing your resume...
                 </p>
-              )}
-            </div>
+                <p className="text-gray-600 text-xs">
+                  This may take a few seconds
+                </p>
+              </div>
+            ) : generated ? (
+              <div className="flex flex-col gap-4">
+                {/* Success message */}
+                <div className="bg-green-600/10 border border-green-600/30 rounded-xl p-4 flex items-center gap-3">
+                  <span className="text-2xl">✅</span>
+                  <div>
+                    <div className="text-green-400 font-semibold text-sm">
+                      Resume Generated!
+                    </div>
+                    <div className="text-gray-500 text-xs mt-0.5">
+                      Your resume is ready. Choose your preferred format below.
+                    </div>
+                  </div>
+                </div>
+
+                {/* PDF Download */}
+                <button
+                  onClick={handleDownloadPDF}
+                  className="w-full bg-red-600/10 hover:bg-red-600/20 border border-red-600/30 text-white rounded-xl p-5 flex items-center gap-4 transition group"
+                >
+                  <div className="w-12 h-12 bg-red-600/20 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition">
+                    📄
+                  </div>
+                  <div className="text-left">
+                    <div className="font-bold text-sm mb-0.5">
+                      Download as PDF
+                    </div>
+                    <div className="text-gray-500 text-xs">
+                      Best for sending by email or applying online
+                    </div>
+                  </div>
+                  <div className="ml-auto text-gray-600 group-hover:text-red-400 transition text-lg">
+                    ⬇
+                  </div>
+                </button>
+
+                {/* Word Download */}
+                <button
+                  onClick={handleDownloadWord}
+                  className="w-full bg-blue-600/10 hover:bg-blue-600/20 border border-blue-600/30 text-white rounded-xl p-5 flex items-center gap-4 transition group"
+                >
+                  <div className="w-12 h-12 bg-blue-600/20 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition">
+                    📝
+                  </div>
+                  <div className="text-left">
+                    <div className="font-bold text-sm mb-0.5">
+                      Download as Word (.docx)
+                    </div>
+                    <div className="text-gray-500 text-xs">
+                      Best for editing or submitting to HR systems
+                    </div>
+                  </div>
+                  <div className="ml-auto text-gray-600 group-hover:text-blue-400 transition text-lg">
+                    ⬇
+                  </div>
+                </button>
+
+                {/* Regenerate */}
+                <button
+                  onClick={handleGenerate}
+                  className="w-full text-gray-500 hover:text-white border border-gray-700 hover:border-gray-600 rounded-xl py-3 text-sm transition"
+                >
+                  ↺ Regenerate Resume
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
+                <div className="text-6xl">📋</div>
+                <div>
+                  <h3 className="text-gray-400 font-semibold mb-2">
+                    Your resume will be ready here
+                  </h3>
+                  <p className="text-gray-600 text-sm max-w-xs">
+                    Fill in your details on the left and click Generate. You can
+                    download as PDF or Word.
+                  </p>
+                </div>
+
+                {/* Format badges */}
+                <div className="flex gap-3 mt-2">
+                  <div className="bg-red-600/10 border border-red-600/20 rounded-lg px-4 py-2 text-center">
+                    <div className="text-xl mb-1">📄</div>
+                    <div className="text-red-400 text-xs font-bold">PDF</div>
+                  </div>
+                  <div className="bg-blue-600/10 border border-blue-600/20 rounded-lg px-4 py-2 text-center">
+                    <div className="text-xl mb-1">📝</div>
+                    <div className="text-blue-400 text-xs font-bold">WORD</div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
