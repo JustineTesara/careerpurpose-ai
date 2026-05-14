@@ -412,7 +412,7 @@ STRICT FORMATTING RULES:
                 <textarea
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-violet-500 resize-none"
                   rows={3}
-                  placeholder="e.g. IT Intern at Sutherland — built web apps using React and Firebase"
+                  placeholder="Tell us about your professional experience, internships, freelance work, or major projects that showcase your skills and achievements. Example: Front-End Developer at ABC Company (2023–2025) — Developed responsive web applications using React and Tailwind CSS."
                   value={form.experience}
                   onChange={(e) => handleChange("experience", e.target.value)}
                 />
