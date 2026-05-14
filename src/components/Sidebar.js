@@ -17,6 +17,33 @@ const navItems = [
   { id: "productivity", label: "Productivity", icon: "🎯" },
 ];
 
+// ── Logo component ─────────────────────────────
+function Logo() {
+  return (
+    <div className="flex items-center gap-2.5">
+      {/* Icon mark */}
+      <div className="relative w-8 h-8 flex-shrink-0">
+        <div className="absolute inset-0 bg-violet-600 rounded-lg rotate-3"></div>
+        <div className="absolute inset-0 bg-violet-500 rounded-lg flex items-center justify-center">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M3 13L6 7L9 10L11 6L14 13H3Z" fill="white" opacity="0.9" />
+            <circle cx="11" cy="4" r="1.5" fill="white" />
+          </svg>
+        </div>
+      </div>
+      {/* Wordmark */}
+      <div className="leading-tight">
+        <div className="text-white font-bold text-sm tracking-tight">
+          Career<span className="text-violet-400">Purpose</span>
+        </div>
+        <div className="text-gray-500 text-xs font-medium tracking-widest uppercase">
+          AI
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Sidebar({ currentPage, onNavigate }) {
   const { user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -27,25 +54,17 @@ function Sidebar({ currentPage, onNavigate }) {
 
   function handleNav(id) {
     onNavigate(id);
-    setMobileOpen(false); // close menu on mobile after clicking
+    setMobileOpen(false);
   }
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="p-4 border-b border-gray-800 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center text-white text-sm">
-            ✦
-          </div>
-          <span className="text-white font-bold text-sm">
-            Career<span className="text-violet-400">Purpose</span> AI
-          </span>
-        </div>
-        {/* Close button — mobile only */}
+        <Logo />
         <button
           onClick={() => setMobileOpen(false)}
-          className="md:hidden text-gray-500 hover:text-white text-xl"
+          className="md:hidden text-gray-500 hover:text-white text-xl leading-none"
         >
           ✕
         </button>
@@ -82,9 +101,14 @@ function Sidebar({ currentPage, onNavigate }) {
           placeholder="Paste Groq key..."
           className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-white text-xs outline-none focus:border-violet-500"
         />
-        href="https://console.groq.com" target="_blank" rel="noreferrer"
-        className="text-violet-400 text-xs mt-1 block hover:underline"
-        <a>Get free Groq key &#8594;</a>
+        <a
+          href="https://console.groq.com"
+          target="_blank"
+          rel="noreferrer"
+          className="text-violet-400 text-xs mt-1 block hover:underline"
+        >
+          Get free Groq key &#8594;
+        </a>
       </div>
 
       {/* User info */}
@@ -121,31 +145,22 @@ function Sidebar({ currentPage, onNavigate }) {
 
       {/* ── MOBILE top bar ──────────────────────── */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-gray-900 border-b border-gray-800 px-4 h-14 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-violet-600 rounded-lg flex items-center justify-center text-white text-xs">
-            ✦
-          </div>
-          <span className="text-white font-bold text-sm">
-            Career<span className="text-violet-400">Purpose</span> AI
-          </span>
-        </div>
+        <Logo />
         <button
           onClick={() => setMobileOpen(true)}
-          className="text-gray-400 hover:text-white text-2xl"
+          className="text-gray-400 hover:text-white text-2xl leading-none"
         >
           ☰
         </button>
       </div>
 
-      {/* ── MOBILE drawer overlay ────────────────── */}
+      {/* ── MOBILE drawer ───────────────────────── */}
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
-          {/* Backdrop */}
           <div
             className="flex-1 bg-black/60"
             onClick={() => setMobileOpen(false)}
           />
-          {/* Drawer */}
           <div className="w-72 bg-gray-900 border-l border-gray-800 h-full overflow-y-auto">
             {sidebarContent}
           </div>
