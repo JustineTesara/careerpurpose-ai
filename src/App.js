@@ -19,15 +19,15 @@ function PageContent({ page, onNavigate, apiKey }) {
     case "dashboard":
       return <Dashboard onNavigate={onNavigate} apiKey={apiKey} />;
     case "resume-builder":
-      return <ResumeBuilder apiKey={apiKey} />;
+      return <ResumeBuilder />;
     case "resume-analyzer":
       return <ResumeAnalyzer />;
-    case "skill-gap":
-      return <SkillGap />;
     case "career-roadmap":
       return <CareerRoadmap />;
     case "interview-sim":
       return <InterviewSim />;
+    case "skill-gap":
+      return <SkillGap />;
     case "cover-letter":
       return <CoverLetter />;
     case "job-tracker":
@@ -36,7 +36,6 @@ function PageContent({ page, onNavigate, apiKey }) {
       return <LearningHub />;
     case "productivity":
       return <Productivity />;
-
     default:
       return (
         <div className="p-8">
@@ -52,53 +51,17 @@ function PageContent({ page, onNavigate, apiKey }) {
 function AppShell() {
   const { user } = useAuth();
   const [currentPage, setCurrentPage] = useState("dashboard");
-  const [apiKey, setApiKey] = useState(
-    localStorage.getItem("cp_gemini_key") || "",
-  );
-
-  function handleApiKeyChange(e) {
-    const val = e.target.value;
-    setApiKey(val);
-    localStorage.setItem("cp_gemini_key", val);
-  }
 
   if (!user) return <Login />;
 
   return (
     <div className="flex min-h-screen bg-gray-950">
-      {/* Left column: Sidebar + API key input */}
-      <div className="flex flex-col w-56 min-w-56">
-        <Sidebar currentPage={currentPage} onNavigate={setCurrentPage} />
+      {/* Sidebar — handles its own API key input and mobile menu */}
+      <Sidebar currentPage={currentPage} onNavigate={setCurrentPage} />
 
-        <div className="bg-gray-900 border-r border-t border-gray-800 p-3">
-          <label className="text-gray-500 text-xs block mb-1">
-            Groq API Key
-          </label>
-          <input
-            type="password"
-            value={apiKey}
-            onChange={handleApiKeyChange}
-            placeholder="Paste key here..."
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-white text-xs outline-none focus:border-violet-500"
-          />
-          <a
-            href="https://aistudio.google.com"
-            target="_blank"
-            rel="noreferrer"
-            className="text-violet-400 text-xs mt-1 block hover:underline"
-          >
-            Get free key &#8594;
-          </a>
-        </div>
-      </div>
-
-      {/* Main content area */}
-      <main className="flex-1 overflow-x-hidden">
-        <PageContent
-          page={currentPage}
-          onNavigate={setCurrentPage}
-          apiKey={apiKey}
-        />
+      {/* Main content — pt-14 adds space for mobile top bar */}
+      <main className="flex-1 overflow-x-hidden pt-14 md:pt-0">
+        <PageContent page={currentPage} onNavigate={setCurrentPage} />
       </main>
     </div>
   );
