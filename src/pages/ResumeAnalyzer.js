@@ -1,65 +1,108 @@
 // src/pages/ResumeAnalyzer.js
 import { useState, useRef } from "react";
 import { callGemini } from "../lib/gemini";
+import * as mammoth from "mammoth";
 
 function ResumeAnalyzer() {
-  const [resumeText, setResumeText] = useState("");
   const [targetRole, setTargetRole] = useState("");
   const [output, setOutput] = useState("");
   const [loading, setLoading] = useState(false);
   const [score, setScore] = useState(null);
   const [fileName, setFileName] = useState("");
-  const [pdfLoading, setPdfLoading] = useState(false);
+  const [fileLoading, setFileLoading] = useState(false);
+  const [resumeText, setResumeText] = useState("");
   const fileInputRef = useRef(null);
 
-  // Extract text from uploaded PDF
+  // ── Read PDF ──────────────────────────────────
+  async function readPDF(file) {
+    const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf");
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+    let fullText = "";
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map((item) => item.str).join(" ");
+      fullText += pageText + "\n";
+    }
+    return fullText.trim();
+  }
+
+  // ── Read Word (.docx) ─────────────────────────
+  async function readWord(file) {
+    const arrayBuffer = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer });
+    return result.value.trim();
+  }
+
+  // ── Handle file upload ────────────────────────
   async function handleFileUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.type !== "application/pdf") {
-      alert("Please upload a PDF file.");
+
+    const isPDF = file.type === "application/pdf";
+    const isWord =
+      file.type ===
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      file.type === "application/msword" ||
+      file.name.endsWith(".docx") ||
+      file.name.endsWith(".doc");
+
+    if (!isPDF && !isWord) {
+      alert("Please upload a PDF or Word document (.pdf, .docx, .doc)");
       return;
     }
 
     setFileName(file.name);
-    setPdfLoading(true);
+    setFileLoading(true);
+    setResumeText("");
+    setOutput("");
+    setScore(null);
 
     try {
-      // Load pdfjs from CDN to avoid build issues
-      const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf");
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
-
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-
-      let fullText = "";
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
-        const pageText = textContent.items.map((item) => item.str).join(" ");
-        fullText += pageText + "\n";
+      let text = "";
+      if (isPDF) {
+        text = await readPDF(file);
+      } else {
+        text = await readWord(file);
       }
 
-      setResumeText(fullText.trim());
-      setPdfLoading(false);
+      if (!text || text.length < 50) {
+        alert(
+          "Could not read enough text from this file. Make sure it's not a scanned image.",
+        );
+        setFileLoading(false);
+        setFileName("");
+        return;
+      }
+
+      setResumeText(text);
+      setFileLoading(false);
+
+      // Auto-analyze after upload
+      await analyzeResume(text);
     } catch (err) {
-      setPdfLoading(false);
-      alert("Could not read PDF. Try copying and pasting the text manually.");
+      console.error(err);
+      setFileLoading(false);
+      alert(
+        "Failed to read file. Try a different format or check if the file is corrupted.",
+      );
     }
   }
 
-  async function handleAnalyze() {
-    if (!resumeText.trim()) {
-      alert("Please paste your resume text or upload a PDF first.");
-      return;
-    }
+  // ── Analyze resume text ───────────────────────
+  async function analyzeResume(text) {
     setLoading(true);
     setOutput("");
     setScore(null);
 
     const prompt = `Analyze this resume${targetRole ? " for the role of " + targetRole : ""}:
 
-${resumeText}
+${text}
 
 Provide a detailed analysis with these exact sections:
 
@@ -72,7 +115,7 @@ WEAKNESSES:
 - List what needs improvement
 
 MISSING SKILLS:
-- List skills missing for ${targetRole || "general IT roles"}
+- List skills missing for ${targetRole || "general job roles"}
 
 SPECIFIC IMPROVEMENTS:
 - List actionable things to fix
@@ -91,6 +134,14 @@ Be specific, honest, and helpful.`;
     setLoading(false);
   }
 
+  async function handleAnalyzeClick() {
+    if (!resumeText.trim()) {
+      alert("Please upload your resume first.");
+      return;
+    }
+    await analyzeResume(resumeText);
+  }
+
   function getScoreColor(s) {
     if (s >= 75) return "#34d399";
     if (s >= 50) return "#ffb340";
@@ -99,75 +150,28 @@ Be specific, honest, and helpful.`;
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
+      {/* Header */}
       <div className="mb-6">
         <h1 className="text-white text-2xl font-bold mb-1">
           AI Resume Analyzer
         </h1>
         <p className="text-gray-400 text-sm">
-          Upload a PDF or paste your resume text to get instant AI feedback
+          Upload your resume and get instant AI feedback, ATS score, and
+          improvement tips
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* LEFT — Input */}
+        {/* LEFT — Upload */}
         <div className="flex flex-col gap-4">
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-            {/* PDF Upload Area */}
+            {/* Target role */}
             <div className="mb-4">
               <label className="text-gray-500 text-xs font-bold uppercase tracking-wider block mb-2">
-                Upload Resume PDF
-              </label>
-              <div
-                onClick={() => fileInputRef.current.click()}
-                className="border-2 border-dashed border-gray-700 hover:border-violet-500 rounded-xl p-6 text-center cursor-pointer transition"
-              >
-                {pdfLoading ? (
-                  <div className="flex items-center justify-center gap-2 text-gray-400 text-sm">
-                    <div className="w-4 h-4 border-2 border-gray-600 border-t-violet-500 rounded-full animate-spin"></div>
-                    Reading PDF...
-                  </div>
-                ) : fileName ? (
-                  <div>
-                    <div className="text-2xl mb-1">📄</div>
-                    <div className="text-violet-400 text-sm font-semibold">
-                      {fileName}
-                    </div>
-                    <div className="text-gray-500 text-xs mt-1">
-                      Click to change file
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <div className="text-3xl mb-2">⬆️</div>
-                    <div className="text-gray-400 text-sm font-semibold">
-                      Click to upload PDF
-                    </div>
-                    <div className="text-gray-600 text-xs mt-1">
-                      or paste text below
-                    </div>
-                  </div>
-                )}
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-            </div>
-
-            {/* Divider */}
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex-1 h-px bg-gray-800"></div>
-              <span className="text-gray-600 text-xs">or paste text</span>
-              <div className="flex-1 h-px bg-gray-800"></div>
-            </div>
-
-            {/* Target role */}
-            <div className="mb-3">
-              <label className="text-gray-500 text-xs font-bold uppercase tracking-wider block mb-2">
-                Target Job Role (optional)
+                Target Job Role
+                <span className="text-gray-600 ml-1 font-normal normal-case">
+                  (optional but recommended)
+                </span>
               </label>
               <input
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-violet-500"
@@ -177,27 +181,118 @@ Be specific, honest, and helpful.`;
               />
             </div>
 
-            {/* Manual text input */}
+            {/* Upload area */}
             <div className="mb-4">
               <label className="text-gray-500 text-xs font-bold uppercase tracking-wider block mb-2">
-                Resume Text
+                Upload Resume
               </label>
-              <textarea
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-violet-500 resize-none"
-                rows={10}
-                placeholder="Paste your resume text here, or upload a PDF above...&#10;&#10;e.g. Maria Santos&#10;Customer Service Representative&#10;Quezon City | maria@gmail.com&#10;&#10;PROFESSIONAL SUMMARY&#10;Dedicated customer service professional with 2 years experience..."
-                value={resumeText}
-                onChange={(e) => setResumeText(e.target.value)}
+
+              <div
+                onClick={() => fileInputRef.current.click()}
+                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition
+                  ${
+                    fileName
+                      ? "border-violet-600/50 bg-violet-600/5"
+                      : "border-gray-700 hover:border-violet-500 hover:bg-gray-800/50"
+                  }`}
+              >
+                {fileLoading ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-8 h-8 border-2 border-gray-600 border-t-violet-500 rounded-full animate-spin"></div>
+                    <div className="text-gray-400 text-sm">
+                      Reading your resume...
+                    </div>
+                  </div>
+                ) : fileName ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="text-4xl">
+                      {fileName.endsWith(".pdf") ? "📄" : "📝"}
+                    </div>
+                    <div className="text-violet-400 text-sm font-semibold">
+                      {fileName}
+                    </div>
+                    <div className="text-gray-500 text-xs">
+                      Click to upload a different file
+                    </div>
+                    {resumeText && (
+                      <div className="text-green-400 text-xs mt-1">
+                        ✓ {resumeText.split(" ").length} words read successfully
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-14 h-14 bg-gray-800 rounded-xl flex items-center justify-center text-3xl">
+                      ⬆️
+                    </div>
+                    <div>
+                      <div className="text-white text-sm font-semibold mb-1">
+                        Click to upload your resume
+                      </div>
+                      <div className="text-gray-500 text-xs">
+                        Supports PDF and Word (.docx, .doc)
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                onChange={handleFileUpload}
+                className="hidden"
               />
             </div>
 
-            <button
-              onClick={handleAnalyze}
-              disabled={loading}
-              className="w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition text-sm"
-            >
-              {loading ? "🔍 Analyzing..." : "🔍 Analyze Resume"}
-            </button>
+            {/* Supported formats */}
+            <div className="flex gap-2 mb-4">
+              {["PDF", "DOCX", "DOC"].map((fmt) => (
+                <span
+                  key={fmt}
+                  className="bg-gray-800 text-gray-400 text-xs font-semibold px-3 py-1 rounded-full border border-gray-700"
+                >
+                  {fmt}
+                </span>
+              ))}
+            </div>
+
+            {/* Re-analyze button */}
+            {resumeText && (
+              <button
+                onClick={handleAnalyzeClick}
+                disabled={loading}
+                className="w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition text-sm"
+              >
+                {loading ? "🔍 Analyzing..." : "🔍 Re-analyze Resume"}
+              </button>
+            )}
+          </div>
+
+          {/* Tips card */}
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <h2 className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-3">
+              Tips for Better Results
+            </h2>
+            <div className="flex flex-col gap-2.5">
+              {[
+                "Enter your target job role for more specific feedback",
+                "Make sure your resume has selectable text (not a scanned image)",
+                "Use a clean, simple resume format for best ATS results",
+                "Include measurable achievements like percentages and numbers",
+              ].map((tip, i) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-2 text-xs text-gray-500"
+                >
+                  <span className="text-violet-400 mt-0.5 flex-shrink-0">
+                    ✦
+                  </span>
+                  {tip}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -243,7 +338,7 @@ Be specific, honest, and helpful.`;
                 </div>
                 <div>
                   <div
-                    className="text-3xl font-bold mb-1"
+                    className="text-2xl font-bold mb-1"
                     style={{ color: getScoreColor(score) }}
                   >
                     {score >= 75
@@ -254,10 +349,10 @@ Be specific, honest, and helpful.`;
                   </div>
                   <div className="text-gray-400 text-sm">
                     {score >= 75
-                      ? "Well-optimized for ATS systems"
+                      ? "Your resume is well-optimized for ATS"
                       : score >= 50
-                        ? "Some improvements needed"
-                        : "Significant improvements needed"}
+                        ? "Some improvements will help you pass ATS filters"
+                        : "Significant improvements needed before applying"}
                   </div>
                 </div>
               </div>
@@ -271,19 +366,29 @@ Be specific, honest, and helpful.`;
                 ✦ AI ANALYSIS
               </span>
             </div>
+
             {loading ? (
-              <div className="flex items-center gap-2 text-gray-400 text-sm">
-                <div className="w-4 h-4 border-2 border-gray-600 border-t-violet-500 rounded-full animate-spin"></div>
-                Analyzing your resume...
+              <div className="flex flex-col items-center justify-center py-16 gap-4">
+                <div className="w-8 h-8 border-2 border-gray-600 border-t-violet-500 rounded-full animate-spin"></div>
+                <p className="text-gray-400 text-sm">
+                  Analyzing your resume...
+                </p>
               </div>
             ) : output ? (
               <pre className="text-gray-300 text-xs leading-relaxed whitespace-pre-wrap">
                 {output}
               </pre>
             ) : (
-              <p className="text-gray-600 text-sm">
-                Upload a PDF or paste your resume then click Analyze.
-              </p>
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="text-5xl mb-4">🔍</div>
+                <h3 className="text-gray-400 font-semibold mb-2">
+                  Upload your resume to get started
+                </h3>
+                <p className="text-gray-600 text-sm max-w-xs">
+                  We'll analyze your resume and give you an ATS score,
+                  strengths, weaknesses, and specific improvements.
+                </p>
+              </div>
             )}
           </div>
         </div>
