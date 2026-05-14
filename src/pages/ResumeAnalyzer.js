@@ -15,21 +15,48 @@ function ResumeAnalyzer() {
 
   // ── Read PDF ──────────────────────────────────
   async function readPDF(file) {
-    const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf");
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const typedArray = new Uint8Array(e.target.result);
 
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          // Load PDF.js from CDN directly
+          if (!window.pdfjsLib) {
+            await new Promise((res, rej) => {
+              const script = document.createElement("script");
+              script.src =
+                "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+              script.onload = res;
+              script.onerror = rej;
+              document.head.appendChild(script);
+            });
+          }
 
-    let fullText = "";
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items.map((item) => item.str).join(" ");
-      fullText += pageText + "\n";
-    }
-    return fullText.trim();
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+            "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+          const pdf = await window.pdfjsLib.getDocument({ data: typedArray })
+            .promise;
+          let fullText = "";
+
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items
+              .map((item) => item.str)
+              .join(" ");
+            fullText += pageText + "\n";
+          }
+
+          resolve(fullText.trim());
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(file);
+    });
   }
 
   // ── Read Word (.docx) ─────────────────────────

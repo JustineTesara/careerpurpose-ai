@@ -42,7 +42,8 @@ function ResumeBuilder() {
     setOutput("");
     setGenerated(false);
 
-    const prompt = `Create a professional ATS-friendly resume in plain text for:
+    const prompt = `You are a professional resume writer. Create a powerful, ATS-optimized resume for:
+
 Name: ${form.name}
 Target Role: ${form.target}
 Contact: ${form.contact}
@@ -54,15 +55,29 @@ Projects: ${form.projects}
 Certifications: ${form.certifications}
 
 STRICT FORMATTING RULES:
-- First line: full name only
+- First line: full name only (no labels)
 - Second line: contact | location
-- Section headers in ALL CAPS (PROFESSIONAL SUMMARY, EDUCATION, SKILLS, EXPERIENCE, PROJECTS, CERTIFICATIONS)
-- Skills: list EACH skill on its own line starting with a dash: - SkillName
-- Experience bullets: start with "- "
-- Project bullets: start with "- ProjectName: description (Tech: ...)"
-- NO markdown symbols like ** or ## or __
-- Plain text only
-- Keep concise for 1 page`;
+- Use these exact section headers in ALL CAPS: PROFESSIONAL SUMMARY, EDUCATION, SKILLS, EXPERIENCE, PROJECTS, CERTIFICATIONS
+- Skills: one per line starting with "- "
+- Experience and project bullets: start with "- "
+- NO markdown symbols like ** or ## or __ or *
+- Plain text only, no special characters
+
+PROFESSIONAL SUMMARY RULES (most important section):
+- Write 3-4 powerful sentences
+- Sentence 1: Who they are + education + years of experience
+- Sentence 2: Their top 3 most relevant skills for ${form.target}
+- Sentence 3: A specific achievement or strength with a number if possible
+- Sentence 4: What value they bring to the employer and career goal
+- Make it sound confident, human, and tailored specifically for ${form.target}
+- Avoid generic phrases like "hardworking" or "team player" unless backed by evidence
+
+EXPERIENCE RULES:
+- Start each bullet with a strong action verb (Managed, Built, Increased, Reduced, Led)
+- Include numbers, percentages, or scale wherever possible
+- Focus on impact and results, not just tasks
+
+Keep the entire resume concise enough to fit on 1 page.`;
 
     const result = await callGemini(prompt);
     setOutput(result);
